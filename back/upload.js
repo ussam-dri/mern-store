@@ -140,7 +140,7 @@ app.get("/products", async (req, res) => {
   }
 });
 
-// Serve files from GridFS
+// --------------------------  images getting -----------------------//
 app.get("/download/:filename", (req, res) => {
   try {
     const downloadStream = gfsBucket.openDownloadStreamByName(req.params.filename);
@@ -158,7 +158,7 @@ app.get("/download/:filename", (req, res) => {
     });
   }
 });
-
+// --------------------------- end of images handling ------------------------//
 const server = app.listen(process.env.PORT || 8005, function () {
   const port = server.address().port;
   console.log("App started at port:", port);
@@ -356,3 +356,260 @@ app.get('/', async (req, res) => {
   res.status(202).json({ message: 'THIS IS BACKEND beep!' });
 
 })
+
+
+//THIS IS SELLER PARTS------------------------------------------------------------------
+const sellerAccountSchema = new Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  dob: {
+    type: Date,
+    required: true
+  },
+  phoneNumber: {
+    type: String, // Add phone number field
+    required: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true
+  },
+  photo: {
+    id: String,
+    filename: String,
+    contentType: String,// Assuming storing photo URL as a string
+    
+  },
+  role: {
+    type: String,
+    enum: ['seller'],
+    default: 'seller'
+  },
+  products: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Product'
+  }],
+  employed: { type: Date, default: Date.now } // This line adds the 'employed' field
+
+});
+
+const SellerAccount = mongoose.model('SellerAccount', sellerAccountSchema);
+// -----------------  ------------------------------ //
+
+app.post('/create-seller', upload.single('photo'), async (req, res) => {
+  try {
+    const { name, dob, email, phoneNumber } = req.body;
+    console.log("Received data: " + JSON.stringify(req.body));
+
+    const photo = req.file ? {
+      id: req.file.id, // Adjust as needed
+      filename: req.file.filename,
+      contentType: req.file.mimetype
+    } : null;
+
+    const newSeller = new SellerAccount({
+      name,
+      dob,
+      email,
+      photo,
+      phoneNumber,
+      employed: new Date()
+    });
+
+    const savedSeller = await newSeller.save();
+    res.status(201).json(savedSeller);
+  } catch (error) {
+    console.error('Error creating seller:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// ----------------------------------------------------------------------//
+app.get('/get-all-sellers', async (req, res) => {
+  try {
+    const sellers = await SellerAccount.find();
+    res.status(200).json(sellers);
+  } catch (error) {
+    console.error('Error fetching sellers:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+//--------------------------------------//
+app.get('/get-seller/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const seller = await SellerAccount.findById(id);
+    
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller not found' });
+    }
+
+    res.status(200).json(seller);
+  } catch (error) {
+    console.error('Error fetching seller by ID:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+// ------------------------      -----------------------------------------------//
+app.put('/update-seller', upload.single('photo'), async (req, res) => {
+  try {
+    const { id,name, dob, email, phoneNumber } = req.body;
+    const photo = req.file ? {
+      id: req.file.id, // Adjust as needed
+      filename: req.file.filename,
+      contentType: req.file.mimetype
+    } : null;
+
+    const updatedSellerData = {
+      name,
+      dob,
+      email,
+      phoneNumber,
+      photo,
+      employed: new Date()
+    };
+
+    const updatedSeller = await SellerAccount.findByIdAndUpdate(
+      id,
+      { $set: updatedSellerData },
+      { new: true }
+    );
+
+    if (!updatedSeller) {
+      return res.status(404).json({ message: 'Seller not found' });
+    }
+
+    res.status(200).json(updatedSeller);
+  } catch (error) {
+    console.error('Error updating seller:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// THIS IS MANAGER PART ------------------------------------------- ----------------------------------------//
+const managerAccountSchema = new Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  dob: {
+    type: Date,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true
+  },
+  photo: {
+    id: String,
+    filename: String,
+    contentType: String,// Assuming storing photo URL as a string
+  },
+  role: {
+    type: String,
+    enum: ['manager'],
+    default: 'manager'
+  },
+  phoneNumber: {
+    type: String, // Add phone number field
+    required: true
+  },
+  employed: { type: Date, default: Date.now } // This line adds the 'employed' field
+
+});
+
+const ManagerAccount = mongoose.model('ManagerAccount', managerAccountSchema);
+// ------------------------   ---------------------------------//
+app.post('/create-manager', upload.single('photo'),async (req, res) => {
+  try {
+    const { name, dob, email,phoneNumber } = req.body;
+    const photo = req.file ? {
+      id: req.file.id, // Adjust as needed
+      filename: req.file.filename,
+      contentType: req.file.mimetype
+    } : null;
+
+    console.log('Received data:', req.body); 
+    const newManager = new ManagerAccount({
+      name,
+      dob,
+      email,
+      photo,
+      phoneNumber,
+      employed: new Date()
+    });
+
+    const savedManager = await newManager.save();
+    res.status(201).json(savedManager);
+  } catch (error) {
+    console.error('Error creating manager:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+// -------------------------------   --------------------------------//
+app.get('/get-all-managers', async (req, res) => {
+  try {
+    const managers = await ManagerAccount.find();
+    res.status(200).json(managers);
+  } catch (error) {
+    console.error('Error fetching sellers:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+// -------------------------------   --------------------------------//
+app.get('/get-manager/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const manager = await ManagerAccount.findById(id);
+    
+    if (!manager) {
+      return res.status(404).json({ message: 'Seller not found' });
+    }
+
+    res.status(200).json(manager);
+  } catch (error) {
+    console.error('Error fetching seller by ID:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+// ------------------------------ ------------------------------------//
+app.put('/update-manager', upload.single('photo'), async (req, res) => {
+  try {
+    const { id,name, dob, email, phoneNumber } = req.body;
+    const photo = req.file ? {
+      id: req.file.id, // Adjust as needed
+      filename: req.file.filename,
+      contentType: req.file.mimetype
+    } : null;
+
+    const updatedManagerData = {
+      name,
+      dob,
+      email,
+      phoneNumber,
+      photo,
+      employed: new Date()
+    };
+
+    const updatedManager = await ManagerAccount.findByIdAndUpdate(
+      id,
+      { $set: updatedManagerData },
+      { new: true }
+    );
+
+    if (!updatedManager) {
+      return res.status(404).json({ message: 'Manager not found' });
+    }
+
+    res.status(200).json(updatedManager);
+  } catch (error) {
+    console.error('Error updating manager:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
