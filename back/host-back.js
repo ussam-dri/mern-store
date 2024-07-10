@@ -12,9 +12,9 @@ const crypto = require('crypto');
 
 const app = express();
 
-// app.use(cors({
-//   origin: '*', // The front-end origin
-// }));
+app.use(cors({
+  origin: 'http://localhost:3000', // The front-end origin
+}));
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -60,7 +60,7 @@ transporter.verify(function(error, success) {
 const storage = new GridFsStorage({
   url,
   file: (req, file) => {
-    const isImage = file.mimetype === "image/jpeg" || file.mimetype === "image/png"||file.mimetype === "image/webp";
+    const isImage = file.mimetype === "image/jpeg" || file.mimetype === "image/png";
     return {
       bucketName: isImage ? "photos" : "default",
       filename: `${Date.now()}_${file.originalname}`,
@@ -76,9 +76,7 @@ const productSchema = new Schema({
   title: String,
   price: Number,
   description: String,
-  sellerID: String,
-  gender: String,
-  rating: String,
+  rating: Number,
   mainImage: {
     id: String,
     filename: String,
@@ -94,13 +92,14 @@ const productSchema = new Schema({
 const Product = mongoose.model('Product', productSchema);
 
 app.post("/addProduct", upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'productImages', maxCount: 5 }]), async (req, res) => {
-  const { tag, title, price, description, rating,gender,sellerID } = req.body;
+  const { tag, title, price, description, rating } = req.body;
   const mainImage = req.files.mainImage ? req.files.mainImage[0] : null;
   const productImages = req.files.productImages || [];
 
   if (!mainImage) {
     return res.status(400).send({ message: "Main image is required" });
   }
+
   const mainImageData = {
     id: mainImage.id,
     filename: mainImage.filename,
@@ -119,17 +118,9 @@ app.post("/addProduct", upload.fields([{ name: 'mainImage', maxCount: 1 }, { nam
     price,
     description,
     rating,
-    sellerID,
-    gender,
     mainImage: mainImageData,
     images: images // Assign array of images
   });
-
-console.log(sellerID)
-  const seller = await SellerAccount.findById(sellerID);
-  seller.products.push(product)||seller.products ;
-  const updatedSeller = await seller.save();
-
 
   try {
     await product.save();
@@ -142,8 +133,6 @@ console.log(sellerID)
         price: product.price,
         description: product.description,
         rating: product.rating,
-        gender:product.gender,
-        seller:product.sellerID,
         mainImage: product.mainImage,
         images: product.images
       }
@@ -324,7 +313,7 @@ app.post('/api/user/:id/favorites', async (req, res) => {
   }
 });
 // remove item form favorites 
-app.delete('/api/user/:id/favorites', async (req, res) => {
+app.delete('/api/user/:id/remove-favorites', async (req, res) => {
   try {
     const { id } = req.params;
     const { productId } = req.body;
@@ -392,18 +381,6 @@ app.get('/api/products/getByBrand/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const products = await Product.find({ tag: id });
-
-    res.status(200).json({ products });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
-  }
-});
-//// get by gender
-app.get('/api/products/getByGender/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const products = await Product.find({ gender: id });
 
     res.status(200).json({ products });
   } catch (error) {
@@ -764,7 +741,7 @@ app.post('/portail/login', async (req, res) => {
     const token = generateToken(user); // Implement your own token generation logic
     ///// for security change this 
     const role= user.role;
-    res.status(200).json({ token ,role,name:user.name,email:user.email,phoneNumber:user.phoneNumber,id:user._id}); // Send token back to the client
+    res.status(200).json({ token ,role,name:user.name,email:user.email,phoneNumber:user.phoneNumber}); // Send token back to the client
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -875,23 +852,22 @@ app.post('/api/newsletter', (req, res) => {
     subject: 'Newsletter Confirmation',
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-    <div style="text-align: center;">
-      <img src="cid:logo" alt="Website Logo" style="max-width: 150px; margin-bottom: 20px;">
-    </div>
-    <h1 style="font-size: 24px; color: #333; text-align: center;">Program Notification Subscription</h1>
-    <p style="font-size: 16px; color: #555;">Hello,</p>
-    <p style="font-size: 16px; color: #555;">Thank you for subscribing to receive notifications about our program launch. We appreciate your interest and look forward to sharing updates with you.</p>
-    <p style="font-size: 16px; color: #555;">Stay tuned for announcements regarding our program launch date, features, and how you can participate.</p>
-    <p style="font-size: 16px; color: #555;">If you have any questions or require further information, please feel free to reach out to us at any time.</p>
-    <p style="font-size: 16px; color: #555;">Best Regards,</p>
-    <p style="font-size: 16px; color: #555;">The ShoppeLux Team</p>
-    <div style="text-align: center; margin-top: 20px;">
-      <a href="http://mern-store.zelobrix.com/" style="font-size: 16px; color: #007BFF; text-decoration: none;">Visit Our Website</a>
-    </div>
-  </div>
-</div>
-
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+          <div style="text-align: center;">
+            <img src="cid:logo" alt="Website Logo" style="max-width: 150px; margin-bottom: 20px;">
+          </div>
+          <h1 style="font-size: 24px; color: #333; text-align: center;">Thank You for Subscribing!</h1>
+          <p style="font-size: 16px; color: #555;">Hello,</p>
+          <p style="font-size: 16px; color: #555;">Thank you for subscribing to our newsletter. We're excited to have you on board and can't wait to share our updates and news with you.</p>
+          <p style="font-size: 16px; color: #555;">Stay tuned for the latest updates, special offers, and exclusive content delivered straight to your inbox.</p>
+          <p style="font-size: 16px; color: #555;">If you have any questions or need assistance, feel free to contact us at any time.</p>
+          <p style="font-size: 16px; color: #555;">Best Regards,</p>
+          <p style="font-size: 16px; color: #555;">The [Your Company Name] Team</p>
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="[Your Website URL]" style="font-size: 16px; color: #007BFF; text-decoration: none;">Visit Our Website</a>
+          </div>
+        </div>
+      </div>
     `,
     attachments: [{
       filename: 'logo-bg.png',
@@ -904,7 +880,7 @@ app.post('/api/newsletter', (req, res) => {
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.log(error)
-      return res.status(500).send('Error sending email',error)
+      return res.status(500).send('Error sending email')
     }
     console.log('Email sent: ' + info.response)
     res.status(200).send('Confirmation email sent')
