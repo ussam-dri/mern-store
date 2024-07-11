@@ -60,7 +60,7 @@ transporter.verify(function(error, success) {
 const storage = new GridFsStorage({
   url,
   file: (req, file) => {
-    const isImage = file.mimetype === "image/jpeg" || file.mimetype === "image/png"||file.mimetype === "image/webp";
+    const isImage = file.mimetype === "image/jpeg" || file.mimetype === "image/png"||file.mimetype === "image/webp"||file.mimetype === "image/avif" | file.mimetype === "image/jpg";
     return {
       bucketName: isImage ? "photos" : "default",
       filename: `${Date.now()}_${file.originalname}`,
