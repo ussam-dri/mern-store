@@ -12,9 +12,9 @@ const crypto = require('crypto');
 
 const app = express();
 
-// app.use(cors({
-//   origin: '*', // The front-end origin
-// }));
+app.use(cors({
+  origin: '*', // The front-end origin
+}));
 
 // Middleware to parse JSON bodies
 app.use(express.json());

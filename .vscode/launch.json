@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to Chrome",
+            "type": "chrome",
+            "request": "attach",
+            "port": 3000, // Make sure Chrome is started with remote debugging port 9222
+            "webRoot": "${workspaceFolder}",
+            "url": "http://localhost:3000" // URL of your React app
+        },
+        {
+            "name": "Launch Node Program",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/server.js", // Path to your Node.js entry file
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "cwd": "${workspaceFolder}",
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ]
+        }
+    ]
+}
